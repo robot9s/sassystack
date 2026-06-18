@@ -1,26 +1,123 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+@theme {
+  --color-coral-50: #fdf3ef;
+  --color-coral-100: #fbe3d8;
+  --color-coral-200: #f6c3ad;
+  --color-coral-300: #ef9b78;
+  --color-coral-400: #e87a4f;
+  --color-coral-500: #d85a30;
+  --color-coral-600: #c44a24;
+  --color-coral-700: #a33a1e;
+  --color-coral-800: #82301f;
+  --color-coral-900: #6a2a1d;
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f7f8;
+  --foreground: #1c1917;
+  --coral: #d85a30;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* React Flow theming */
+.react-flow__attribution {
+  display: none;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--coral);
+}
+
+.react-flow__handle {
+  width: 9px;
+  height: 9px;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+}
+
+.react-flow__handle:hover {
+  border-color: var(--coral);
+}
+
+.react-flow__controls-button {
+  border-bottom: 1px solid #eee;
+}
+
+/* cmdk palette */
+[cmdk-overlay] {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(2px);
+  z-index: 50;
+}
+
+[cmdk-root] {
+  max-width: 560px;
+  width: 92vw;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  border: 1px solid #e5e7eb;
+}
+
+[cmdk-input] {
+  width: 100%;
+  font-size: 16px;
+  padding: 16px 18px;
+  border: none;
+  border-bottom: 1px solid #eef0f2;
+  outline: none;
+  background: transparent;
+}
+
+[cmdk-list] {
+  max-height: 360px;
+  overflow: auto;
+  padding: 8px;
+}
+
+[cmdk-item] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #1c1917;
+}
+
+[cmdk-item][data-selected="true"] {
+  background: var(--coral);
+  color: #fff;
+}
+
+[cmdk-empty] {
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+[cmdk-group-heading] {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
 }

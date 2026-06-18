@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Constellation
 
-## Getting Started
+A visual home dashboard for your project's stack. Each external service or tool
+(GitHub, Railway, Supabase, Stripe, your domain, analytics, …) is a **node** showing
+its real logo, and nodes are connected by **edges** to show how the stack fits
+together — a node-graph bookmark page for your whole stack.
 
-First, run the development server:
+This is a **local-first app for personal use**. Everything lives in your browser's
+`localStorage`. No login, no database, no payments, no third-party integrations.
+
+## Features
+
+- **Visual canvas** of draggable service nodes with pan/zoom, a dotted background,
+  minimap, and controls (React Flow).
+- **Brand-logo grabber** — paste a URL and the node gets the real logo and a brand
+  color automatically, with a clean monogram fallback if no logo is found.
+- **Connections** between nodes with editable labels and three kinds (`link`, `data`,
+  `auth`). Double-click an edge to edit it.
+- **Detail panel** to edit a node's name, URL, category, notes, and optional **manual
+  billing** fields (plan / cost / cycle / next charge — just metadata you type in).
+- **⌘K command palette** to fuzzy-search nodes and jump to them, plus quick actions.
+- **Multiple boards** (one per project) with a switcher.
+- **Local persistence** — survives refreshes.
+- **Export** to PNG (with a watermark) and **export / import** the full state as JSON.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How to use
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Add a service**: click **Add node** (or double-click empty canvas), paste a URL,
+  press Enter. Keep pressing Enter to add several quickly; Esc closes.
+- **Connect services**: drag from a node's right handle to another node's left handle.
+- **Edit an edge**: double-click it to set a label and kind.
+- **Edit a node**: click it (or the pencil icon) to open the detail panel.
+- **Open a service**: double-click its card.
+- **Search**: press **⌘K** / **Ctrl-K**. Enter focuses a node; ⌘/Ctrl+Enter opens its URL.
+- **Boards**: use the switcher next to the wordmark to create / rename / delete / switch.
+- **Backup**: Export → JSON. Restore with Export → Import JSON.
 
-## Learn More
+## The logo grabber
 
-To learn more about Next.js, take a look at the following resources:
+`GET /api/brand?url=<site>` runs server-side (no CORS issues) and **always returns
+something usable**:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```ts
+{ logoUrl: string | null, color: string /* hex */, source: string, monogram: string }
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Resolution cascade (stops at the first that works):
 
-## Deploy on Vercel
+1. **Brandfetch** — if `BRANDFETCH_API_KEY` is set.
+2. **Logo.dev** — if `LOGODEV_TOKEN` is set.
+3. **Favicon services** (no key needed): Google S2 favicons, then DuckDuckGo icons.
+4. **Color**: dominant color extracted from the chosen icon with `node-vibrant`.
+5. **Fallback**: deterministic color derived from the domain + a 1–2 letter monogram,
+   so the UI never shows a broken image.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Results are cached per-domain in memory (server) and in `localStorage` (client).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Optional environment variables
+
+Create `.env.local` to enable higher-quality logos (the favicon path needs no keys):
+
+```bash
+BRANDFETCH_API_KEY=...   # optional
+LOGODEV_TOKEN=...        # optional
+```
+
+## Tech stack
+
+Next.js (App Router) + TypeScript · Tailwind CSS · React Flow (`@xyflow/react`) ·
+Zustand (persisted to `localStorage`) · cmdk · html-to-image · node-vibrant.
