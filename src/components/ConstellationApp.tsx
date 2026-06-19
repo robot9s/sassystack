@@ -9,6 +9,19 @@ import DetailPanel from './DetailPanel';
 import CommandPalette from './CommandPalette';
 import AddNodeDialog from './AddNodeDialog';
 
+/** True when focus is in an input, textarea, select, or contentEditable. */
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName;
+  return (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    el.isContentEditable
+  );
+}
+
 export default function ConstellationApp() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -23,12 +36,23 @@ export default function ConstellationApp() {
     if (hydrated) ensureSeedBoard();
   }, [hydrated]);
 
-  // Global ⌘K / Ctrl-K
+  // Global search shortcuts: ⌘K / Ctrl-K anywhere, or "/" when not typing.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOpen((o) => !o);
+        return;
+      }
+      if (
+        e.key === '/' &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !isEditableTarget(e.target)
+      ) {
+        e.preventDefault();
+        setPaletteOpen(true);
       }
     };
     document.addEventListener('keydown', onKey);

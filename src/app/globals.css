@@ -55,15 +55,18 @@ body {
   border-bottom: 1px solid #eee;
 }
 
-/* cmdk palette */
-[cmdk-overlay] {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  backdrop-filter: blur(2px);
-  z-index: 50;
+/* Animated data-flow edges: flowing dashed stroke. */
+@keyframes cs-edge-dash {
+  to {
+    stroke-dashoffset: -30;
+  }
 }
 
+.cs-edge-flow {
+  animation: cs-edge-dash 0.9s linear infinite;
+}
+
+/* cmdk palette */
 [cmdk-root] {
   max-width: 560px;
   width: 92vw;

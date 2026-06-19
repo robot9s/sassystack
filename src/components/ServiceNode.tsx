@@ -2,17 +2,17 @@
 
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import type { ServiceNode as ServiceNodeType } from '@/lib/types';
+import type { BoardNode } from '@/lib/types';
 import { CATEGORY_COLORS } from '@/lib/types';
 import { displayHostname, ensureUrl, formatBilling } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import LogoChip from './LogoChip';
 
-function ServiceNodeComponent({ id, data, selected }: NodeProps<ServiceNodeType>) {
+function ServiceNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
   const setSelectedNode = useStore((s) => s.setSelectedNode);
 
   const color = data.color || '#64748b';
-  const host = displayHostname(data.url);
+  const host = displayHostname(data.url ?? '');
   const billing = formatBilling(data.billing?.cost, data.billing?.cycle);
   const categoryColor = data.category ? CATEGORY_COLORS[data.category] : null;
 

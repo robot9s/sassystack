@@ -13,9 +13,13 @@ import type {
   AppState,
   Board,
   BoardEdge,
-  ServiceNode,
+  BoardNode,
+  ContainerNodeData,
+  NodeData,
+  NoteNodeData,
   ServiceNodeData,
 } from './types';
+import { CONTAINER_DEFAULT_HEIGHT, CONTAINER_DEFAULT_WIDTH } from './types';
 import { genId } from './utils';
 
 interface StoreActions {
@@ -27,14 +31,29 @@ interface StoreActions {
 
   // nodes
   addNode: (data: ServiceNodeData, position?: { x: number; y: number }) => string;
-  updateNode: (id: string, data: Partial<ServiceNodeData>) => void;
+  addContainer: (
+    data?: Partial<ContainerNodeData>,
+    position?: { x: number; y: number },
+  ) => string;
+  addNote: (
+    data?: Partial<NoteNodeData>,
+    position?: { x: number; y: number },
+  ) => string;
+  duplicateNode: (id: string) => string | null;
+  updateNode: (id: string, data: Partial<NodeData>) => void;
+  setNodeParent: (
+    nodeId: string,
+    parentId: string | null,
+    position: { x: number; y: number },
+  ) => void;
   deleteNode: (id: string) => void;
 
   // react flow change handlers
-  onNodesChange: (changes: NodeChange<ServiceNode>[]) => void;
+  onNodesChange: (changes: NodeChange<BoardNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<BoardEdge>[]) => void;
   onConnect: (connection: Connection) => void;
   updateEdge: (id: string, data: Partial<BoardEdge['data']>) => void;
+  reverseEdge: (id: string) => void;
   deleteEdge: (id: string) => void;
 
   // selection (for detail panel)
@@ -55,6 +74,12 @@ function createDefaultBoard(): Board {
     nodes: [],
     edges: [],
   };
+}
+
+/** Deep-clone node data for duplication, falling back when unavailable. */
+function structuredCloneSafe<T>(value: T): T {
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 /** Apply a mutation to the active board and return new boards array. */
@@ -115,14 +140,14 @@ export const useStore = create<Store>()(
 
       addNode: (data, position) => {
         const id = genId('node');
-        const node: ServiceNode = {
+        const node: BoardNode = {
           id,
           type: 'service',
           position: position ?? {
             x: 120 + Math.random() * 240,
             y: 120 + Math.random() * 160,
           },
-          data,
+          data: data as NodeData,
         };
         set((s) => ({
           boards: patchActiveBoard(s, (b) => ({
@@ -132,6 +157,94 @@ export const useStore = create<Store>()(
           selectedNodeId: id,
         }));
         return id;
+      },
+
+      addContainer: (data, position) => {
+        const id = genId('container');
+        const node: BoardNode = {
+          id,
+          type: 'container',
+          position: position ?? {
+            x: 100 + Math.random() * 160,
+            y: 100 + Math.random() * 120,
+          },
+          // Containers render behind regular nodes.
+          zIndex: 0,
+          data: {
+            label: data?.label ?? 'New Group',
+            color: data?.color ?? '#94a3b8',
+            url: data?.url,
+            logoUrl: data?.logoUrl ?? null,
+            monogram: data?.monogram,
+            width: data?.width ?? CONTAINER_DEFAULT_WIDTH,
+            height: data?.height ?? CONTAINER_DEFAULT_HEIGHT,
+          },
+        };
+        set((s) => ({
+          boards: patchActiveBoard(s, (b) => ({
+            ...b,
+            // keep containers first so they remain valid parents on render
+            nodes: [node, ...b.nodes],
+          })),
+          selectedNodeId: id,
+        }));
+        return id;
+      },
+
+      addNote: (data, position) => {
+        const id = genId('note');
+        const node: BoardNode = {
+          id,
+          type: 'note',
+          position: position ?? {
+            x: 140 + Math.random() * 200,
+            y: 140 + Math.random() * 140,
+          },
+          zIndex: 5,
+          data: {
+            text: data?.text ?? '',
+            color: data?.color ?? '#1c1917',
+            fontSize: data?.fontSize ?? 16,
+          },
+        };
+        set((s) => ({
+          boards: patchActiveBoard(s, (b) => ({
+            ...b,
+            nodes: [...b.nodes, node],
+          })),
+          selectedNodeId: id,
+        }));
+        return id;
+      },
+
+      duplicateNode: (id) => {
+        const board = get().boards.find((b) => b.id === get().activeBoardId);
+        const original = board?.nodes.find((n) => n.id === id);
+        if (!original) return null;
+        const newId = genId(original.type ?? 'node');
+        const copy: BoardNode = {
+          ...original,
+          id: newId,
+          // copy content only — never the connections
+          position: {
+            x: original.position.x + 28,
+            y: original.position.y + 28,
+          },
+          data: structuredCloneSafe(original.data),
+          selected: false,
+        };
+        set((s) => ({
+          boards: patchActiveBoard(s, (b) => ({
+            ...b,
+            // containers stay first; everything else appends
+            nodes:
+              original.type === 'container'
+                ? [copy, ...b.nodes]
+                : [...b.nodes, copy],
+          })),
+          selectedNodeId: newId,
+        }));
+        return newId;
       },
 
       updateNode: (id, data) =>
@@ -144,13 +257,53 @@ export const useStore = create<Store>()(
           })),
         })),
 
-      deleteNode: (id) =>
+      setNodeParent: (nodeId, parentId, position) =>
         set((s) => ({
           boards: patchActiveBoard(s, (b) => ({
             ...b,
-            nodes: b.nodes.filter((n) => n.id !== id),
-            edges: b.edges.filter((e) => e.source !== id && e.target !== id),
+            nodes: b.nodes.map((n) => {
+              if (n.id !== nodeId) return n;
+              if (parentId) {
+                return { ...n, parentId, extent: 'parent' as const, position };
+              }
+              // detach: drop parent-related fields
+              const { parentId: _p, extent: _e, ...rest } = n;
+              void _p;
+              void _e;
+              return { ...rest, position };
+            }),
           })),
+        })),
+
+      deleteNode: (id) =>
+        set((s) => ({
+          boards: patchActiveBoard(s, (b) => {
+            const container = b.nodes.find(
+              (n) => n.id === id && n.type === 'container',
+            );
+            return {
+              ...b,
+              nodes: b.nodes
+                .filter((n) => n.id !== id)
+                .map((n) => {
+                  // detach children of a deleted container, restoring absolute pos
+                  if (container && n.parentId === id) {
+                    const { parentId: _p, extent: _e, ...rest } = n;
+                    void _p;
+                    void _e;
+                    return {
+                      ...rest,
+                      position: {
+                        x: container.position.x + n.position.x,
+                        y: container.position.y + n.position.y,
+                      },
+                    };
+                  }
+                  return n;
+                }),
+              edges: b.edges.filter((e) => e.source !== id && e.target !== id),
+            };
+          }),
           selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
         })),
 
@@ -179,7 +332,7 @@ export const useStore = create<Store>()(
                 ...connection,
                 id: genId('edge'),
                 type: 'service',
-                data: { kind: 'link' as const },
+                data: { style: 'standard' as const, animated: false },
               },
               b.edges,
             ),
@@ -192,6 +345,24 @@ export const useStore = create<Store>()(
             ...b,
             edges: b.edges.map((e) =>
               e.id === id ? { ...e, data: { ...e.data, ...data } } : e,
+            ),
+          })),
+        })),
+
+      reverseEdge: (id) =>
+        set((s) => ({
+          boards: patchActiveBoard(s, (b) => ({
+            ...b,
+            edges: b.edges.map((e) =>
+              e.id === id
+                ? {
+                    ...e,
+                    source: e.target,
+                    target: e.source,
+                    sourceHandle: e.targetHandle ?? null,
+                    targetHandle: e.sourceHandle ?? null,
+                  }
+                : e,
             ),
           })),
         })),
