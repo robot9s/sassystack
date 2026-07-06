@@ -14,10 +14,18 @@
   --color-coral-900: #6a2a1d;
 }
 
+/* Class-based dark mode: the toggle stamps `.dark` on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f7f7f8;
   --foreground: #1c1917;
   --coral: #d85a30;
+}
+
+.dark {
+  --background: #0b0e14;
+  --foreground: #e7e5e4;
 }
 
 html,
@@ -45,6 +53,11 @@ body {
   height: 9px;
   background: #ffffff;
   border: 2px solid #cbd5e1;
+}
+
+.dark .react-flow__handle {
+  background: #1e293b;
+  border-color: #475569;
 }
 
 .react-flow__handle:hover {
@@ -123,4 +136,24 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #94a3b8;
+}
+
+/* cmdk dark theme */
+.dark [cmdk-root] {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+.dark [cmdk-input] {
+  color: #e2e8f0;
+  border-color: #1e293b;
+}
+
+.dark [cmdk-item] {
+  color: #e2e8f0;
+}
+
+.dark [cmdk-item][data-selected="true"] {
+  background: var(--coral);
+  color: #fff;
 }

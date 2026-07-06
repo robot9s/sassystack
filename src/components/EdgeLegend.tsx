@@ -12,7 +12,7 @@ const ITEMS: { label: string; color: string; dash?: string; flow?: boolean }[] =
 export default function EdgeLegend() {
   return (
     <Panel position="bottom-left">
-      <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white/90 px-3 py-1.5 text-xs shadow-sm backdrop-blur">
+      <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white/90 px-3 py-1.5 text-xs shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/90">
         {ITEMS.map((item) => (
           <div key={item.label} className="flex items-center gap-1.5">
             <svg width="22" height="6" className="overflow-visible">

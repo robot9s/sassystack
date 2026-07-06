@@ -6,6 +6,7 @@ import { ensureSeedBoard, useHydrated, useStore } from '@/lib/store';
 import TopBar from './TopBar';
 import Canvas from './Canvas';
 import DetailPanel from './DetailPanel';
+import CostPanel from './CostPanel';
 import CommandPalette from './CommandPalette';
 import AddNodeDialog from './AddNodeDialog';
 
@@ -25,10 +26,12 @@ function isEditableTarget(target: EventTarget | null): boolean {
 export default function ConstellationApp() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [costsOpen, setCostsOpen] = useState(false);
   const [dropPosition, setDropPosition] = useState<{ x: number; y: number } | null>(
     null,
   );
   const addBoard = useStore((s) => s.addBoard);
+  const theme = useStore((s) => s.theme);
   const hydrated = useHydrated();
 
   // Seed a default board once the persisted store has hydrated.
@@ -36,23 +39,57 @@ export default function ConstellationApp() {
     if (hydrated) ensureSeedBoard();
   }, [hydrated]);
 
-  // Global search shortcuts: ⌘K / Ctrl-K anywhere, or "/" when not typing.
+  // Apply the persisted theme to the document root.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  // Global keyboard shortcuts.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      const meta = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      // Search: ⌘K anywhere, "/" when not typing.
+      if (meta && key === 'k') {
         e.preventDefault();
         setPaletteOpen((o) => !o);
         return;
       }
-      if (
-        e.key === '/' &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        !e.altKey &&
-        !isEditableTarget(e.target)
-      ) {
+      if (e.key === '/' && !meta && !e.altKey && !isEditableTarget(e.target)) {
         e.preventDefault();
         setPaletteOpen(true);
+        return;
+      }
+
+      // Everything below must not fire while typing.
+      if (isEditableTarget(e.target)) return;
+      const store = useStore.getState();
+
+      if (meta && key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) store.redo();
+        else store.undo();
+        return;
+      }
+      if (meta && key === 'd') {
+        const board = store.getActiveBoard();
+        const selected = board?.nodes.filter((n) => n.selected).map((n) => n.id) ?? [];
+        if (selected.length) {
+          e.preventDefault();
+          store.duplicateNodes(selected);
+        }
+        return;
+      }
+      if (meta && key === 'c') {
+        // Only intercept when canvas nodes are selected, so normal text
+        // copying elsewhere on the page keeps working.
+        if (store.copySelection() > 0) e.preventDefault();
+        return;
+      }
+      if (meta && key === 'v') {
+        if (store.pasteClipboard()) e.preventDefault();
+        return;
       }
     };
     document.addEventListener('keydown', onKey);
@@ -80,9 +117,14 @@ export default function ConstellationApp() {
   return (
     <ReactFlowProvider>
       <div className="flex h-full w-full flex-col">
-        <TopBar onAddNode={() => openAdd()} onOpenPalette={() => setPaletteOpen(true)} />
+        <TopBar
+          onAddNode={() => openAdd()}
+          onOpenPalette={() => setPaletteOpen(true)}
+          onToggleCosts={() => setCostsOpen((o) => !o)}
+        />
         <div className="relative flex-1 overflow-hidden">
           <Canvas onRequestAdd={openAdd} />
+          {costsOpen && <CostPanel onClose={() => setCostsOpen(false)} />}
           <DetailPanel />
         </div>
       </div>

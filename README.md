@@ -18,7 +18,16 @@ This is a **local-first app for personal use**. Everything lives in your browser
   `auth`). Double-click an edge to edit it.
 - **Detail panel** to edit a node's name, URL, category, notes, and optional **manual
   billing** fields (plan / cost / cycle / next charge — just metadata you type in).
-- **⌘K command palette** to fuzzy-search nodes and jump to them, plus quick actions.
+- **⌘K command palette** (also `/`) to fuzzy-search nodes and jump to them, plus quick actions.
+- **Stack cost dashboard** — billing on nodes *and* containers rolls up into a Costs
+  panel: monthly/annual totals, upcoming renewals, and a per-item breakdown.
+- **Containers** that group related nodes, auto-grow to fit their members, and carry
+  their own logo, color, link, and billing.
+- **Text notes**, a **right-click context menu**, and **undo/redo** (⌘Z / ⇧⌘Z).
+- **Multi-select** (shift-drag), **copy/paste** (⌘C/⌘V), and **duplicate** (⌘D).
+- **Tidy** auto-layout (dagre), snap-to-grid toggle, and edge reconnection by dragging
+  an endpoint.
+- **Dark mode** toggle.
 - **Multiple boards** (one per project) with a switcher.
 - **Local persistence** — survives refreshes.
 - **Export** to PNG (with a watermark) and **export / import** the full state as JSON.

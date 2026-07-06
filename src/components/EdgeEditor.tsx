@@ -70,10 +70,10 @@ export default function EdgeEditor({ edgeId, screenX, screenY, onClose }: EdgeEd
   return (
     <div
       ref={ref}
-      className="fixed z-[80] rounded-xl border border-slate-200 bg-white p-3 shadow-2xl"
+      className="fixed z-[80] rounded-xl border border-slate-200 bg-white p-3 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
       style={{ left, top, width: PANEL_W }}
     >
-      <div className="mb-1 text-xs font-medium text-slate-500">Label</div>
+      <div className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">Label</div>
       <input
         autoFocus
         value={label}
@@ -82,7 +82,7 @@ export default function EdgeEditor({ edgeId, screenX, screenY, onClose }: EdgeEd
           if (e.key === 'Enter') onClose();
         }}
         placeholder="e.g. webhooks"
-        className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-coral-500 focus:ring-2 focus:ring-coral-200"
+        className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-coral-500 focus:ring-2 focus:ring-coral-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-coral-900"
       />
       <div className="mt-1.5 flex flex-wrap gap-1">
         {EDGE_LABEL_PRESETS.map((preset) => (
@@ -91,8 +91,8 @@ export default function EdgeEditor({ edgeId, screenX, screenY, onClose }: EdgeEd
             onClick={() => setLabelValue(preset)}
             className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
               label === preset
-                ? 'border-coral-400 bg-coral-50 text-coral-700'
-                : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                ? 'border-coral-400 bg-coral-50 text-coral-700 dark:bg-coral-900/40 dark:text-coral-300'
+                : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'
             }`}
           >
             {preset}
@@ -100,7 +100,7 @@ export default function EdgeEditor({ edgeId, screenX, screenY, onClose }: EdgeEd
         ))}
       </div>
 
-      <div className="mb-1 mt-3 text-xs font-medium text-slate-500">Style</div>
+      <div className="mb-1 mt-3 text-xs font-medium text-slate-500 dark:text-slate-400">Style</div>
       <div className="grid grid-cols-2 gap-1.5">
         {EDGE_STYLES.map((s) => (
           <button
@@ -109,8 +109,8 @@ export default function EdgeEditor({ edgeId, screenX, screenY, onClose }: EdgeEd
             title={s.hint}
             className={`rounded-lg border px-2 py-1.5 text-xs font-medium ${
               style === s.value
-                ? 'border-coral-500 bg-coral-50 text-coral-700'
-                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                ? 'border-coral-500 bg-coral-50 text-coral-700 dark:bg-coral-900/40 dark:text-coral-300'
+                : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
             }`}
           >
             {s.label}
@@ -123,18 +123,18 @@ export default function EdgeEditor({ edgeId, screenX, screenY, onClose }: EdgeEd
           onClick={() => updateEdge(edge.id, { animated: !animated })}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-medium ${
             animated
-              ? 'border-sky-400 bg-sky-50 text-sky-700'
-              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+              ? 'border-sky-400 bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
+              : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
           }`}
         >
           <span
-            className={`h-1.5 w-1.5 rounded-full ${animated ? 'bg-sky-500' : 'bg-slate-300'}`}
+            className={`h-1.5 w-1.5 rounded-full ${animated ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`}
           />
           {animated ? 'Animation on' : 'Animation off'}
         </button>
         <button
           onClick={() => reverseEdge(edge.id)}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           title="Reverse direction"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -152,7 +152,7 @@ export default function EdgeEditor({ edgeId, screenX, screenY, onClose }: EdgeEd
           deleteEdge(edge.id);
           onClose();
         }}
-        className="mt-3 w-full rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+        className="mt-3 w-full rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
       >
         Delete edge
       </button>

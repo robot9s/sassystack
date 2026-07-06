@@ -106,6 +106,42 @@ export function genId(prefix = 'id'): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Normalize a billing entry to a monthly-equivalent dollar amount.
+ * Returns null for one-time costs (`cycle: 'none'`) and missing costs.
+ * Usage-based costs are treated as a monthly estimate.
+ */
+export function monthlyEquivalent(cost?: number, cycle?: string): number | null {
+  if (cost == null || Number.isNaN(cost)) return null;
+  switch (cycle) {
+    case 'annual':
+      return cost / 12;
+    case 'none':
+      return null;
+    case 'usage':
+    case 'monthly':
+    default:
+      return cost;
+  }
+}
+
+/** Format a dollar amount: whole numbers stay whole, else 2 decimals. */
+export function formatMoney(amount: number): string {
+  return Number.isInteger(Math.round(amount * 100) / 100) && amount % 1 === 0
+    ? `$${amount}`
+    : `$${amount.toFixed(2)}`;
+}
+
+/** Days from today until an ISO date string (negative = past). */
+export function daysUntil(isoDate: string): number | null {
+  const target = new Date(isoDate);
+  if (Number.isNaN(target.getTime())) return null;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - now.getTime()) / 86_400_000);
+}
+
 /** Format a billing chip label, e.g. "$25/mo". */
 export function formatBilling(cost?: number, cycle?: string): string | null {
   if (cost == null || Number.isNaN(cost)) return null;

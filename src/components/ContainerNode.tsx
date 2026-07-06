@@ -4,7 +4,7 @@ import { memo, useCallback } from 'react';
 import { type NodeProps, useReactFlow } from '@xyflow/react';
 import type { BoardNode, ContainerNodeData } from '@/lib/types';
 import { CONTAINER_DEFAULT_HEIGHT, CONTAINER_DEFAULT_WIDTH } from '@/lib/types';
-import { ensureUrl } from '@/lib/utils';
+import { ensureUrl, formatBilling } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import LogoChip from './LogoChip';
 
@@ -20,6 +20,7 @@ function ContainerNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
   const width = d.width ?? CONTAINER_DEFAULT_WIDTH;
   const height = d.height ?? CONTAINER_DEFAULT_HEIGHT;
   const color = d.color || '#94a3b8';
+  const billing = formatBilling(d.billing?.cost, d.billing?.cycle);
 
   const onResizeStart = useCallback(
     (e: React.PointerEvent) => {
@@ -79,9 +80,14 @@ function ContainerNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
           size={22}
           rounded={6}
         />
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700">
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700 dark:text-slate-200">
           {d.label || 'Group'}
         </span>
+        {billing && (
+          <span className="shrink-0 rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-coral-700 dark:bg-slate-900/60 dark:text-coral-400">
+            {billing}
+          </span>
+        )}
         {d.url && (
           <button
             onClick={openUrl}

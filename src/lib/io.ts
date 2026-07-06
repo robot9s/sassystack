@@ -45,7 +45,11 @@ const WATERMARK = 'made with Constellation';
  * Render the React Flow canvas to a PNG, fit to the node bounds, with a small
  * watermark in the bottom-right corner.
  */
-export async function exportCanvasPng(nodes: Node[], filename = 'constellation.png') {
+export async function exportCanvasPng(
+  nodes: Node[],
+  filename = 'constellation.png',
+  backgroundColor = '#f7f7f8',
+) {
   const viewportEl = document.querySelector<HTMLElement>('.react-flow__viewport');
   if (!viewportEl) throw new Error('Canvas not found.');
 
@@ -61,7 +65,7 @@ export async function exportCanvasPng(nodes: Node[], filename = 'constellation.p
   }
 
   const dataUrl = await toPng(viewportEl, {
-    backgroundColor: '#f7f7f8',
+    backgroundColor,
     width,
     height,
     pixelRatio: 2,

@@ -23,8 +23,10 @@ function ServiceNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
 
   return (
     <div
-      className={`group relative flex w-[230px] items-center gap-3 rounded-xl border bg-white px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md ${
-        selected ? 'border-coral-500 ring-2 ring-coral-200' : 'border-slate-200'
+      className={`group relative flex w-[230px] items-center gap-3 rounded-xl border bg-white px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md dark:bg-slate-900 ${
+        selected
+          ? 'border-coral-500 ring-2 ring-coral-200 dark:ring-coral-900'
+          : 'border-slate-200 dark:border-slate-700'
       }`}
       style={{ borderLeft: `4px solid ${color}` }}
       onDoubleClick={openUrl}
@@ -45,7 +47,7 @@ function ServiceNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-sm font-medium text-slate-900">
+          <span className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
             {data.label || 'Untitled'}
           </span>
           {categoryColor && (
@@ -59,7 +61,7 @@ function ServiceNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
         <div className="flex items-center gap-1.5">
           <span className="truncate text-xs text-slate-400">{host || 'no url'}</span>
           {billing && (
-            <span className="shrink-0 rounded bg-coral-50 px-1.5 py-0.5 text-[10px] font-medium text-coral-700">
+            <span className="shrink-0 rounded bg-coral-50 px-1.5 py-0.5 text-[10px] font-medium text-coral-700 dark:bg-coral-900/40 dark:text-coral-300">
               {billing}
             </span>
           )}
@@ -73,7 +75,7 @@ function ServiceNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
           e.stopPropagation();
           setSelectedNode(id);
         }}
-        className={`absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-opacity hover:text-coral-600 ${
+        className={`absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-opacity hover:text-coral-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400 ${
           selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}
         title="Edit details"

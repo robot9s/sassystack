@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
+  ControlButton,
   Controls,
   MiniMap,
   ReactFlow,
@@ -13,6 +14,7 @@ import {
 } from '@xyflow/react';
 import { useStore } from '@/lib/store';
 import type { NodeData } from '@/lib/types';
+import { CONTAINER_DEFAULT_HEIGHT, CONTAINER_DEFAULT_WIDTH } from '@/lib/types';
 import ServiceNode from './ServiceNode';
 import ContainerNode from './ContainerNode';
 import NoteNode from './NoteNode';
@@ -52,14 +54,19 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
   const onNodesChange = useStore((s) => s.onNodesChange);
   const onEdgesChange = useStore((s) => s.onEdgesChange);
   const onConnect = useStore((s) => s.onConnect);
+  const onReconnect = useStore((s) => s.onReconnect);
   const setSelectedNode = useStore((s) => s.setSelectedNode);
   const addContainer = useStore((s) => s.addContainer);
   const addNote = useStore((s) => s.addNote);
   const duplicateNode = useStore((s) => s.duplicateNode);
   const setNodeParent = useStore((s) => s.setNodeParent);
+  const fitContainerToChildren = useStore((s) => s.fitContainerToChildren);
+  const snapshot = useStore((s) => s.snapshot);
+  const snapToGrid = useStore((s) => s.snapToGrid);
+  const toggleSnapToGrid = useStore((s) => s.toggleSnapToGrid);
+  const theme = useStore((s) => s.theme);
 
-  const { screenToFlowPosition, getIntersectingNodes, getInternalNode } =
-    useReactFlow();
+  const { screenToFlowPosition, getInternalNode } = useReactFlow();
 
   const [editingEdge, setEditingEdge] = useState<EdgeEditState | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
@@ -87,9 +94,11 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
   }, []);
 
   const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: Node) => {
       setEditingEdge(null);
       setMenu(null);
+      // Modifier-clicks are multi-select gestures — don't open the panel.
+      if (event.metaKey || event.ctrlKey || event.shiftKey) return;
       setSelectedNode(node.id);
     },
     [setSelectedNode],
@@ -124,31 +133,61 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
     [screenToFlowPosition],
   );
 
-  // Drop a service/note node into (or out of) a container on drag end.
-  const onNodeDragStop = useCallback(
-    (_: MouseEvent | TouchEvent, node: Node) => {
-      if (node.type === 'container') return;
-      const internal = getInternalNode(node.id);
-      const nodeAbs = internal?.internals.positionAbsolute ?? node.position;
+  // One undo step per drag gesture.
+  const onNodeDragStart = useCallback(() => {
+    snapshot();
+  }, [snapshot]);
 
-      const container = getIntersectingNodes(node).find(
+  // Membership rule: a node whose center lands inside a container joins it;
+  // dragging its center out detaches it. Containers grow to fit new members.
+  const onNodeDragStop = useCallback(
+    (_: MouseEvent | TouchEvent, __: Node, draggedNodes: Node[]) => {
+      const containers = (boardNodes ?? []).filter(
         (n) => n.type === 'container',
       );
+      const touchedContainers = new Set<string>();
 
-      if (container) {
-        if (node.parentId === container.id) return; // already inside
-        const cInternal = getInternalNode(container.id);
-        const cAbs = cInternal?.internals.positionAbsolute ?? container.position;
-        setNodeParent(node.id, container.id, {
-          x: nodeAbs.x - cAbs.x,
-          y: nodeAbs.y - cAbs.y,
+      for (const node of draggedNodes) {
+        if (node.type === 'container') {
+          // Container moved — its children rode along; nothing to re-parent,
+          // but re-fit in case a manual resize left members hanging out.
+          touchedContainers.add(node.id);
+          continue;
+        }
+        const internal = getInternalNode(node.id);
+        const abs = internal?.internals.positionAbsolute ?? node.position;
+        const w = node.measured?.width ?? 230;
+        const h = node.measured?.height ?? 56;
+        const cx = abs.x + w / 2;
+        const cy = abs.y + h / 2;
+
+        const target = containers.find((c) => {
+          const cw = c.data.width ?? CONTAINER_DEFAULT_WIDTH;
+          const ch = c.data.height ?? CONTAINER_DEFAULT_HEIGHT;
+          return (
+            cx >= c.position.x &&
+            cx <= c.position.x + cw &&
+            cy >= c.position.y &&
+            cy <= c.position.y + ch
+          );
         });
-      } else if (node.parentId) {
-        // dragged out of its container — restore absolute position
-        setNodeParent(node.id, null, { x: nodeAbs.x, y: nodeAbs.y });
+
+        if (target) {
+          if (node.parentId !== target.id) {
+            setNodeParent(node.id, target.id, {
+              x: abs.x - target.position.x,
+              y: abs.y - target.position.y,
+            });
+          }
+          touchedContainers.add(target.id);
+        } else if (node.parentId) {
+          setNodeParent(node.id, null, { x: abs.x, y: abs.y });
+        }
       }
+
+      for (const id of touchedContainers) fitContainerToChildren(id);
     },
-    [getIntersectingNodes, getInternalNode, setNodeParent],
+    [boardNodes, getInternalNode, setNodeParent, fitContainerToChildren],
   );
 
   const handlePaneDoubleClick = useCallback(
@@ -176,7 +215,7 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
 
   const menuItems: ContextMenuItem[] = useMemo(() => {
     if (!menu) return [];
-    const items: ContextMenuItem[] = [
+    return [
       {
         label: 'Add Node',
         icon: <IconPlus />,
@@ -199,13 +238,13 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
         onClick: () => menu.nodeId && duplicateNode(menu.nodeId),
       },
     ];
-    return items;
   }, [menu, onRequestAdd, addContainer, addNote, duplicateNode]);
 
   return (
     <div className="relative h-full w-full" onDoubleClick={handlePaneDoubleClick}>
       <EdgeMarkers />
       <ReactFlow
+        colorMode={theme}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
@@ -213,8 +252,10 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onReconnect={onReconnect}
         onNodeClick={onNodeClick}
         onNodeContextMenu={onNodeContextMenu}
+        onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         onEdgeClick={onEdgeClick}
         onPaneClick={() => {
@@ -224,6 +265,9 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
         onPaneContextMenu={onPaneContextMenu}
         onMoveStart={closeOverlays}
         defaultEdgeOptions={defaultEdgeOptions}
+        snapToGrid={snapToGrid}
+        snapGrid={[11, 11]}
+        selectionKeyCode="Shift"
         fitView
         fitViewOptions={{ padding: 0.3, maxZoom: 1.2 }}
         proOptions={{ hideAttribution: true }}
@@ -231,14 +275,29 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
         maxZoom={2.5}
         deleteKeyCode={['Backspace', 'Delete']}
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1.4} color="#d6d3d1" />
-        <Controls showInteractive={false} />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={22}
+          size={1.4}
+          color={theme === 'dark' ? '#3a3f4a' : '#d6d3d1'}
+        />
+        <Controls showInteractive={false}>
+          <ControlButton
+            onClick={toggleSnapToGrid}
+            title={snapToGrid ? 'Snap to grid: on' : 'Snap to grid: off'}
+            style={{ opacity: snapToGrid ? 1 : 0.45 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+            </svg>
+          </ControlButton>
+        </Controls>
         <MiniMap
           nodeColor={minimapNodeColor}
           nodeStrokeWidth={3}
           pannable
           zoomable
-          className="!bottom-4 !right-4 !rounded-lg !border !border-slate-200"
+          className="!bottom-4 !right-4 !rounded-lg !border !border-slate-200 dark:!border-slate-700"
         />
         <EdgeLegend />
       </ReactFlow>

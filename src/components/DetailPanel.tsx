@@ -27,7 +27,7 @@ export default function DetailPanel() {
   const kind = node.type ?? 'service';
 
   return (
-    <aside className="absolute right-0 top-0 z-30 flex h-full w-[340px] max-w-[90vw] flex-col border-l border-slate-200 bg-white shadow-2xl">
+    <aside className="absolute right-0 top-0 z-30 flex h-full w-[340px] max-w-[90vw] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
       <Header node={node} onClose={close} />
 
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
@@ -36,10 +36,10 @@ export default function DetailPanel() {
         {kind === 'note' && <NoteFields node={node} />}
       </div>
 
-      <div className="border-t border-slate-100 px-4 py-3">
+      <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800">
         <button
           onClick={() => deleteNode(node.id)}
-          className="w-full rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+          className="w-full rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
         >
           Delete {kind === 'note' ? 'note' : kind === 'container' ? 'container' : 'node'}
         </button>
@@ -61,10 +61,10 @@ function Header({ node, onClose }: { node: BoardNode; onClose: () => void }) {
       : displayHostname(d.url ?? '');
 
   return (
-    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
       <div className="flex items-center gap-2.5">
         {isNote ? (
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 7V5h16v2M9 19h6M12 5v14" />
             </svg>
@@ -78,13 +78,15 @@ function Header({ node, onClose }: { node: BoardNode; onClose: () => void }) {
           />
         )}
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-slate-900">{title}</div>
+          <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {title}
+          </div>
           <div className="truncate text-xs text-slate-400">{subtitle}</div>
         </div>
       </div>
       <button
         onClick={onClose}
-        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
         aria-label="Close panel"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -95,14 +97,79 @@ function Header({ node, onClose }: { node: BoardNode; onClose: () => void }) {
   );
 }
 
+/** Shared billing block used by both services and containers. */
+function BillingSection({ node }: { node: BoardNode }) {
+  const updateNode = useStore((s) => s.updateNode);
+  const data = node.data;
+  const commitBilling = (patch: Partial<NonNullable<NodeData['billing']>>) =>
+    updateNode(node.id, { billing: { ...data.billing, ...patch } });
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+      <div className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        Billing
+      </div>
+      <div className="space-y-3">
+        <Field label="Plan">
+          <input
+            value={data.billing?.plan ?? ''}
+            onChange={(e) => commitBilling({ plan: e.target.value })}
+            className={inputCls}
+            placeholder="Pro, Team, …"
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Cost ($)">
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={data.billing?.cost ?? ''}
+              onChange={(e) =>
+                commitBilling({
+                  cost: e.target.value === '' ? undefined : Number(e.target.value),
+                })
+              }
+              className={inputCls}
+              placeholder="0"
+            />
+          </Field>
+          <Field label="Cycle">
+            <select
+              value={data.billing?.cycle ?? 'monthly'}
+              onChange={(e) => commitBilling({ cycle: e.target.value as BillingCycle })}
+              className={inputCls}
+            >
+              {CYCLES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <Field label="Next charge">
+          <input
+            type="date"
+            value={data.billing?.nextCharge ?? ''}
+            onChange={(e) => commitBilling({ nextCharge: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
+      </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
+        Manual metadata only — rolls up into the Costs panel.
+      </p>
+    </div>
+  );
+}
+
 function ServiceFields({ node }: { node: BoardNode }) {
   const updateNode = useStore((s) => s.updateNode);
   const data = node.data;
   const [reResolving, setReResolving] = useState(false);
 
   const commit = (patch: Partial<NodeData>) => updateNode(node.id, patch);
-  const commitBilling = (patch: Partial<NonNullable<NodeData['billing']>>) =>
-    updateNode(node.id, { billing: { ...data.billing, ...patch } });
 
   const reResolveLogo = async () => {
     const url = data.url?.trim();
@@ -165,62 +232,7 @@ function ServiceFields({ node }: { node: BoardNode }) {
         />
       </Field>
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-        <div className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Billing
-        </div>
-        <div className="space-y-3">
-          <Field label="Plan">
-            <input
-              value={data.billing?.plan ?? ''}
-              onChange={(e) => commitBilling({ plan: e.target.value })}
-              className={inputCls}
-              placeholder="Pro, Team, …"
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Cost ($)">
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={data.billing?.cost ?? ''}
-                onChange={(e) =>
-                  commitBilling({
-                    cost: e.target.value === '' ? undefined : Number(e.target.value),
-                  })
-                }
-                className={inputCls}
-                placeholder="0"
-              />
-            </Field>
-            <Field label="Cycle">
-              <select
-                value={data.billing?.cycle ?? 'monthly'}
-                onChange={(e) => commitBilling({ cycle: e.target.value as BillingCycle })}
-                className={inputCls}
-              >
-                {CYCLES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <Field label="Next charge">
-            <input
-              type="date"
-              value={data.billing?.nextCharge ?? ''}
-              onChange={(e) => commitBilling({ nextCharge: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-        </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
-          Manual metadata only — not connected to any payment provider.
-        </p>
-      </div>
+      <BillingSection node={node} />
     </>
   );
 }
@@ -279,7 +291,7 @@ function ContainerFields({ node }: { node: BoardNode }) {
             type="color"
             value={normalizeColor(data.color)}
             onChange={(e) => commit({ color: e.target.value })}
-            className="h-9 w-12 cursor-pointer rounded-md border border-slate-300 bg-white p-1"
+            className="h-9 w-12 cursor-pointer rounded-md border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-slate-800"
           />
           <input
             value={data.color ?? ''}
@@ -296,11 +308,13 @@ function ContainerFields({ node }: { node: BoardNode }) {
       {data.logoUrl && (
         <button
           onClick={() => commit({ logoUrl: null })}
-          className="text-xs font-medium text-slate-500 hover:text-red-600"
+          className="text-xs font-medium text-slate-500 hover:text-red-600 dark:text-slate-400"
         >
           Remove logo
         </button>
       )}
+
+      <BillingSection node={node} />
     </>
   );
 }
@@ -338,7 +352,7 @@ function NoteFields({ node }: { node: BoardNode }) {
             type="color"
             value={normalizeColor(data.color, '#1c1917')}
             onChange={(e) => commit({ color: e.target.value })}
-            className="h-9 w-full cursor-pointer rounded-md border border-slate-300 bg-white p-1"
+            className="h-9 w-full cursor-pointer rounded-md border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-slate-800"
           />
         </Field>
       </div>
@@ -363,7 +377,7 @@ function UrlActions({
       <button
         onClick={onReResolve}
         disabled={reResolving}
-        className="text-xs font-medium text-coral-600 hover:text-coral-700 disabled:opacity-50"
+        className="text-xs font-medium text-coral-600 hover:text-coral-700 disabled:opacity-50 dark:text-coral-400"
       >
         {reResolving ? 'Re-resolving…' : '↻ Re-resolve logo'}
       </button>
@@ -372,7 +386,7 @@ function UrlActions({
           href={ensureUrl(url)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-slate-400 hover:text-slate-600"
+          className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
         >
           Open ↗
         </a>
@@ -382,12 +396,14 @@ function UrlActions({
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-coral-500 focus:ring-2 focus:ring-coral-200';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-coral-500 focus:ring-2 focus:ring-coral-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-coral-900';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
       {children}
     </label>
   );

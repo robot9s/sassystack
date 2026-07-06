@@ -13,7 +13,9 @@ function NoteNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   const fontSize = d.fontSize ?? 16;
-  const color = d.color || '#1c1917';
+  // No explicit color → follow the theme via CSS classes.
+  const colorStyle = d.color ? { color: d.color } : undefined;
+  const colorClass = d.color ? '' : 'text-slate-900 dark:text-slate-100';
 
   useEffect(() => {
     if (editing) {
@@ -48,10 +50,10 @@ function NoteNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
             commit();
           }
         }}
-        className="nodrag nowheel resize-none rounded-md border border-coral-300 bg-white/90 px-2 py-1 shadow-sm outline-none focus:ring-2 focus:ring-coral-200"
+        className={`nodrag nowheel resize-none rounded-md border border-coral-300 bg-white/90 px-2 py-1 shadow-sm outline-none focus:ring-2 focus:ring-coral-200 dark:bg-slate-900/90 ${colorClass}`}
         style={{
           fontSize,
-          color,
+          ...colorStyle,
           minWidth: 120,
           width: Math.max(120, draft.length * (fontSize * 0.55)),
           height: Math.max(fontSize * 2, (draft.split('\n').length + 1) * fontSize * 1.4),
@@ -68,10 +70,10 @@ function NoteNodeComponent({ id, data, selected }: NodeProps<BoardNode>) {
         setDraft(d.text ?? '');
         setEditing(true);
       }}
-      className={`cursor-text whitespace-pre-wrap rounded-md px-2 py-1 ${
+      className={`cursor-text whitespace-pre-wrap rounded-md px-2 py-1 ${colorClass} ${
         selected ? 'outline-dashed outline-2 outline-offset-2 outline-coral-300' : ''
       }`}
-      style={{ fontSize, color, lineHeight: 1.4, minWidth: 24, minHeight: fontSize }}
+      style={{ fontSize, ...colorStyle, lineHeight: 1.4, minWidth: 24, minHeight: fontSize }}
       title="Double-click to edit"
     >
       {d.text || <span className="text-slate-400">Double-click to edit…</span>}

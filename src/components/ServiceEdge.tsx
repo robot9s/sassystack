@@ -79,10 +79,10 @@ export default function ServiceEdge({
       {data?.label && (
         <EdgeLabelRenderer>
           <div
-            className={`nodrag nopan pointer-events-none absolute rounded-full border bg-white px-2 py-0.5 text-[10px] font-medium shadow-sm ${
+            className={`nodrag nopan pointer-events-none absolute rounded-full border bg-white px-2 py-0.5 text-[10px] font-medium shadow-sm dark:bg-slate-800 ${
               selected
-                ? 'border-coral-300 text-coral-700'
-                : 'border-slate-200 text-slate-600'
+                ? 'border-coral-300 text-coral-700 dark:border-coral-700 dark:text-coral-400'
+                : 'border-slate-200 text-slate-600 dark:border-slate-600 dark:text-slate-300'
             }`}
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,

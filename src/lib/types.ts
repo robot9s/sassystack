@@ -30,6 +30,7 @@ export interface ContainerNodeData {
   monogram?: string;
   width?: number;
   height?: number;
+  billing?: BillingInfo;
 }
 
 /** Freeform text note — a standalone canvas label (Excalidraw-style). */

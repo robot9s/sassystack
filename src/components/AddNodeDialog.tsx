@@ -70,11 +70,11 @@ export default function AddNodeDialog({ onClose, dropPosition }: AddNodeDialogPr
       onClick={onClose}
     >
       <div
-        className="w-[440px] max-w-[92vw] rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+        className="w-[440px] max-w-[92vw] rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-1 text-base font-semibold text-slate-900">Add a service</h2>
-        <p className="mb-3 text-xs text-slate-500">
+        <h2 className="mb-1 text-base font-semibold text-slate-900 dark:text-slate-100">Add a service</h2>
+        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
           Paste a URL — we&apos;ll grab the logo and brand color automatically.
         </p>
         <input
@@ -92,7 +92,7 @@ export default function AddNodeDialog({ onClose, dropPosition }: AddNodeDialogPr
             }
           }}
           placeholder="stripe.com"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-coral-500 focus:ring-2 focus:ring-coral-200"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-coral-500 focus:ring-2 focus:ring-coral-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-coral-900"
         />
         <div className="mt-4 flex items-center justify-between">
           <span className="text-xs text-slate-400">
@@ -106,7 +106,7 @@ export default function AddNodeDialog({ onClose, dropPosition }: AddNodeDialogPr
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
+              className="rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Done
             </button>
