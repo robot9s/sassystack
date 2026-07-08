@@ -207,6 +207,27 @@ function ServiceFields({ node }: { node: BoardNode }) {
         />
       </Field>
 
+      <Field label="Color">
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={normalizeColor(data.color, '#64748b')}
+            onChange={(e) => commit({ color: e.target.value })}
+            className="h-9 w-12 cursor-pointer rounded-md border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-slate-800"
+          />
+          <input
+            value={data.color ?? ''}
+            onChange={(e) => commit({ color: e.target.value })}
+            className={inputCls}
+            placeholder="#64748b"
+          />
+        </div>
+        <p className="mt-1 text-[10px] text-slate-400">
+          Tints the accent bar and monogram chip. Re-resolving the logo resets it
+          to the brand color.
+        </p>
+      </Field>
+
       <Field label="Category">
         <select
           value={data.category ?? ''}

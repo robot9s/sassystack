@@ -88,6 +88,8 @@ interface StoreActions {
   setTheme: (theme: ThemeMode) => void;
   snapToGrid: boolean;
   toggleSnapToGrid: () => void;
+  alignmentGuides: boolean;
+  toggleAlignmentGuides: () => void;
 
   // selection (for detail panel)
   selectedNodeId: string | null;
@@ -269,6 +271,7 @@ export const useStore = create<Store>()(
       future: [],
       theme: 'light' as ThemeMode,
       snapToGrid: false,
+      alignmentGuides: true,
 
       getActiveBoard: () => {
         const { boards, activeBoardId } = get();
@@ -338,6 +341,8 @@ export const useStore = create<Store>()(
 
       setTheme: (theme) => set({ theme }),
       toggleSnapToGrid: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
+      toggleAlignmentGuides: () =>
+        set((s) => ({ alignmentGuides: !s.alignmentGuides })),
 
       // ---- boards -------------------------------------------------------
 
@@ -835,6 +840,7 @@ export const useStore = create<Store>()(
         activeBoardId: s.activeBoardId,
         theme: s.theme,
         snapToGrid: s.snapToGrid,
+        alignmentGuides: s.alignmentGuides,
       }),
       onRehydrateStorage: () => (state) => {
         // Ensure there is always at least one board after rehydration.

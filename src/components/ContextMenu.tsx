@@ -70,7 +70,11 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
                 : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
           }`}
         >
-          {item.icon && <span className="text-slate-400">{item.icon}</span>}
+          {item.icon && (
+            <span className={item.danger && !item.disabled ? '' : 'text-slate-400'}>
+              {item.icon}
+            </span>
+          )}
           {item.label}
         </button>
       ))}
