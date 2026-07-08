@@ -4,17 +4,19 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
-  ControlButton,
   Controls,
   MiniMap,
   ReactFlow,
+  ViewportPortal,
   useReactFlow,
   type Edge,
   type Node,
+  type NodeChange,
 } from '@xyflow/react';
 import { useStore } from '@/lib/store';
-import type { NodeData } from '@/lib/types';
+import type { BoardNode, NodeData } from '@/lib/types';
 import { CONTAINER_DEFAULT_HEIGHT, CONTAINER_DEFAULT_WIDTH } from '@/lib/types';
+import { getHelperLines } from '@/lib/helper-lines';
 import ServiceNode from './ServiceNode';
 import ContainerNode from './ContainerNode';
 import NoteNode from './NoteNode';
@@ -61,15 +63,19 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
   const duplicateNode = useStore((s) => s.duplicateNode);
   const setNodeParent = useStore((s) => s.setNodeParent);
   const fitContainerToChildren = useStore((s) => s.fitContainerToChildren);
+  const deleteNode = useStore((s) => s.deleteNode);
   const snapshot = useStore((s) => s.snapshot);
   const snapToGrid = useStore((s) => s.snapToGrid);
-  const toggleSnapToGrid = useStore((s) => s.toggleSnapToGrid);
+  const alignmentGuides = useStore((s) => s.alignmentGuides);
   const theme = useStore((s) => s.theme);
 
   const { screenToFlowPosition, getInternalNode } = useReactFlow();
 
   const [editingEdge, setEditingEdge] = useState<EdgeEditState | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [guides, setGuides] = useState<{ horizontal?: number; vertical?: number }>(
+    {},
+  );
 
   const boardNodes = board?.nodes;
   const edges = board?.edges ?? [];
@@ -81,6 +87,44 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
     const rest = list.filter((n) => n.type !== 'container');
     return [...containers, ...rest];
   }, [boardNodes]);
+
+  // Alignment guides: while a single node drags, snap it to nearby siblings'
+  // edges/centers and surface the guide lines for rendering.
+  const handleNodesChange = useCallback(
+    (changes: NodeChange<BoardNode>[]) => {
+      let nextGuides: { horizontal?: number; vertical?: number } = {};
+      const change = changes[0];
+      if (
+        alignmentGuides &&
+        changes.length === 1 &&
+        change.type === 'position' &&
+        change.dragging &&
+        change.position
+      ) {
+        const list = boardNodes ?? [];
+        const lines = getHelperLines(change, list);
+        change.position = {
+          x: lines.snapPosition.x ?? change.position.x,
+          y: lines.snapPosition.y ?? change.position.y,
+        };
+        // Children live in parent-relative coordinates — shift the guide
+        // lines into flow space for rendering.
+        const dragged = list.find((n) => n.id === change.id);
+        const parent = dragged?.parentId
+          ? list.find((n) => n.id === dragged.parentId)
+          : undefined;
+        const ox = parent?.position.x ?? 0;
+        const oy = parent?.position.y ?? 0;
+        nextGuides = {
+          horizontal: lines.horizontal !== undefined ? lines.horizontal + oy : undefined,
+          vertical: lines.vertical !== undefined ? lines.vertical + ox : undefined,
+        };
+      }
+      setGuides(nextGuides);
+      onNodesChange(changes);
+    },
+    [alignmentGuides, boardNodes, onNodesChange],
+  );
 
   const closeOverlays = useCallback(() => {
     setEditingEdge(null);
@@ -237,8 +281,15 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
         disabled: !menu.nodeId,
         onClick: () => menu.nodeId && duplicateNode(menu.nodeId),
       },
+      {
+        label: 'Delete',
+        icon: <IconTrash />,
+        disabled: !menu.nodeId,
+        danger: true,
+        onClick: () => menu.nodeId && deleteNode(menu.nodeId),
+      },
     ];
-  }, [menu, onRequestAdd, addContainer, addNote, duplicateNode]);
+  }, [menu, onRequestAdd, addContainer, addNote, duplicateNode, deleteNode]);
 
   return (
     <div className="relative h-full w-full" onDoubleClick={handlePaneDoubleClick}>
@@ -249,7 +300,7 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onReconnect={onReconnect}
@@ -281,17 +332,35 @@ export default function Canvas({ onRequestAdd }: CanvasProps) {
           size={1.4}
           color={theme === 'dark' ? '#3a3f4a' : '#d6d3d1'}
         />
-        <Controls showInteractive={false}>
-          <ControlButton
-            onClick={toggleSnapToGrid}
-            title={snapToGrid ? 'Snap to grid: on' : 'Snap to grid: off'}
-            style={{ opacity: snapToGrid ? 1 : 0.45 }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-            </svg>
-          </ControlButton>
-        </Controls>
+        <Controls showInteractive={false} />
+
+        {/* Alignment guide lines (flow coordinate space) */}
+        {(guides.horizontal !== undefined || guides.vertical !== undefined) && (
+          <ViewportPortal>
+            {guides.vertical !== undefined && (
+              <div
+                className="pointer-events-none absolute bg-coral-500/80"
+                style={{
+                  left: guides.vertical,
+                  top: -100000,
+                  width: 1,
+                  height: 200000,
+                }}
+              />
+            )}
+            {guides.horizontal !== undefined && (
+              <div
+                className="pointer-events-none absolute bg-coral-500/80"
+                style={{
+                  top: guides.horizontal,
+                  left: -100000,
+                  height: 1,
+                  width: 200000,
+                }}
+              />
+            )}
+          </ViewportPortal>
+        )}
         <MiniMap
           nodeColor={minimapNodeColor}
           nodeStrokeWidth={3}
@@ -351,6 +420,15 @@ function IconCopy() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="9" y="9" width="13" height="13" rx="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+function IconTrash() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
     </svg>
   );
 }
